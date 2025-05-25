@@ -1,0 +1,16 @@
+{
+  "name": "shm-chaincode",
+  "version": "1.0.0",
+  "description": "Chaincode SHM (Sertifikat Hak Milik)",
+  "main": "index.js",
+  "scripts": {
+    "start": "fabric-chaincode-node start"
+  },
+  "dependencies": {
+    "fabric-contract-api": "^2.2.0",
+    "fabric-shim": "^2.2.0"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  }
+}
