@@ -232,11 +232,17 @@ app.get('/api/shm', async (req, res) => {
         const contract = await getContract();
         const resultBytes = await contract.evaluateTransaction('getAllSHM');
         const data = JSON.parse(decoder.decode(resultBytes));
+        
+        // Sort by tanggal_penerbitan descending
+        const sortedData = Array.isArray(data) ? 
+            data.sort((a, b) => new Date(b.tanggal_penerbitan || 0) - new Date(a.tanggal_penerbitan || 0)) : 
+            data;
+        
         res.json({
             error: false,
             message: "success",
-            total_data: Array.isArray(data) ? data.length : 1,
-            data: data
+            total_data: Array.isArray(sortedData) ? sortedData.length : 1,
+            data: sortedData
         });
     } catch (err) {
         res.status(500).json({
@@ -326,6 +332,161 @@ app.put('/api/shm/batal', async (req, res) => {
             error: true,
             message: err.message,
             total_data: 0,
+            data: null
+        });
+    }
+});
+
+// Endpoint untuk simulasi hash chain verification
+app.get('/api/blockchain/verify-chain', async (req, res) => {
+    try {
+        const contract = await getContract();
+        const resultBytes = await contract.evaluateTransaction('getAllSHM');
+        const data = JSON.parse(decoder.decode(resultBytes));
+        
+        // Simulasi blocks dengan hash chain
+        const blocks = [];
+        let previousHash = crypto.createHash('sha256').update('genesis-block').digest('hex');
+        
+        // Generate blocks dari data SHM
+        data.forEach((shm, index) => {
+            const blockData = {
+                blockNumber: index + 1,
+                timestamp: new Date().toISOString(),
+                data: shm,
+                previousHash: previousHash
+            };
+            
+            const currentHash = crypto.createHash('sha256')
+                .update(JSON.stringify(blockData))
+                .digest('hex');
+            
+            const block = {
+                ...blockData,
+                currentHash: currentHash,
+                isValid: true
+            };
+            
+            blocks.push(block);
+            previousHash = currentHash; // Update untuk block berikutnya
+        });
+        
+        // Simulasi tampering pada block tengah
+        if (blocks.length > 1) {
+            const tamperedIndex = Math.floor(blocks.length / 2);
+            blocks[tamperedIndex].data.nomorSertifikat = 'TAMPERED-' + blocks[tamperedIndex].data.nomorSertifikat;
+            
+            // Recalculate hash untuk block yang tampered
+            const tamperedBlockData = {
+                blockNumber: blocks[tamperedIndex].blockNumber,
+                timestamp: blocks[tamperedIndex].timestamp,
+                data: blocks[tamperedIndex].data,
+                previousHash: blocks[tamperedIndex].previousHash
+            };
+            
+            blocks[tamperedIndex].currentHash = crypto.createHash('sha256')
+                .update(JSON.stringify(tamperedBlockData))
+                .digest('hex');
+            blocks[tamperedIndex].isValid = false;
+            
+            // Recalculate hash chain untuk block setelahnya
+            for (let i = tamperedIndex + 1; i < blocks.length; i++) {
+                blocks[i].previousHash = blocks[i-1].currentHash;
+                
+                const blockData = {
+                    blockNumber: blocks[i].blockNumber,
+                    timestamp: blocks[i].timestamp,
+                    data: blocks[i].data,
+                    previousHash: blocks[i].previousHash
+                };
+                
+                blocks[i].currentHash = crypto.createHash('sha256')
+                    .update(JSON.stringify(blockData))
+                    .digest('hex');
+                blocks[i].isValid = false;
+            }
+        }
+        
+        const brokenChain = blocks.some(block => !block.isValid);
+        
+        res.json({
+            error: false,
+            message: brokenChain ? "Hash chain is BROKEN - Tampering detected!" : "Hash chain is valid",
+            data: {
+                chainStatus: brokenChain ? "BROKEN" : "VALID",
+                totalBlocks: blocks.length,
+                tamperedBlocks: blocks.filter(b => !b.isValid).length,
+                blocks: blocks.map(b => ({
+                    blockNumber: b.blockNumber,
+                    currentHash: b.currentHash.substring(0, 16),
+                    previousHash: b.previousHash.substring(0, 16),
+                    isValid: b.isValid,
+                    status: b.isValid ? "✅ VALID" : "❌ TAMPERED"
+                }))
+            }
+        });
+    } catch (err) {
+        res.status(500).json({
+            error: true,
+            message: err.message,
+            data: null
+        });
+    }
+});
+
+// Endpoint untuk memperbaiki tampered block
+app.post('/api/blockchain/fix-chain', async (req, res) => {
+    try {
+        const contract = await getContract();
+        const resultBytes = await contract.evaluateTransaction('getAllSHM');
+        const data = JSON.parse(decoder.decode(resultBytes));
+        
+        // Rebuild hash chain dengan data asli
+        const fixedBlocks = [];
+        let previousHash = crypto.createHash('sha256').update('genesis-block').digest('hex');
+        
+        data.forEach((shm, index) => {
+            const blockData = {
+                blockNumber: index + 1,
+                timestamp: new Date().toISOString(),
+                data: shm,
+                previousHash: previousHash
+            };
+            
+            const currentHash = crypto.createHash('sha256')
+                .update(JSON.stringify(blockData))
+                .digest('hex');
+            
+            fixedBlocks.push({
+                ...blockData,
+                currentHash: currentHash,
+                isValid: true,
+                status: "🔧 FIXED"
+            });
+            
+            previousHash = currentHash;
+        });
+        
+        res.json({
+            error: false,
+            message: "Hash chain has been fixed - All blocks are now valid",
+            data: {
+                chainStatus: "FIXED",
+                totalBlocks: fixedBlocks.length,
+                fixedBlocks: fixedBlocks.length,
+                blocks: fixedBlocks.map(b => ({
+                    blockNumber: b.blockNumber,
+                    currentHash: b.currentHash.substring(0, 16),
+                    previousHash: b.previousHash.substring(0, 16),
+                    isValid: b.isValid,
+                    status: b.status
+                }))
+            }
+        });
+    } catch (err) {
+        res.status(500).json({
+            error: true,
+            message: err.message,
             data: null
         });
     }
