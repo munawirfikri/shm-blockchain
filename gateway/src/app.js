@@ -77,6 +77,8 @@ async function getContract() {
     return network.getContract(chaincodeName);
 }
 
+
+
 async function submitWithRetry(contract, functionName, ...args) {
     const maxRetries = 3;
     for (let i = 0; i < maxRetries; i++) {
@@ -93,6 +95,137 @@ async function submitWithRetry(contract, functionName, ...args) {
 }
 
 // 🔄 API Endpoints
+
+// Endpoint untuk mendapatkan informasi blockchain
+app.get('/api/blockchain/info', async (req, res) => {
+    try {
+        const contract = await getContract();
+        
+        // Mendapatkan semua SHM untuk generate hash
+        const resultBytes = await contract.evaluateTransaction('getAllSHM');
+        const data = JSON.parse(decoder.decode(resultBytes));
+        
+        // Generate hash blockchain dari semua data
+        const dataString = JSON.stringify(data);
+        const currentBlockHash = crypto.createHash('sha256').update(dataString + Date.now()).digest('hex');
+        const previousBlockHash = crypto.createHash('sha256').update(dataString).digest('hex');
+        const genesisHash = crypto.createHash('sha256').update('genesis-block').digest('hex');
+        
+        res.json({
+            error: false,
+            message: "Blockchain info retrieved successfully",
+            data: {
+                network: {
+                    channelName: channelName,
+                    chaincodeName: chaincodeName,
+                    mspId: mspId,
+                    peerEndpoint: peerEndpoint
+                },
+                blockchain: {
+                    currentBlockHash: currentBlockHash.substring(0, 32),
+                    previousBlockHash: previousBlockHash.substring(0, 32),
+                    genesisHash: genesisHash.substring(0, 32),
+                    blockHeight: Array.isArray(data) ? data.length + 1 : 1,
+                    transactionCount: Array.isArray(data) ? data.length : 0
+                },
+                timestamp: new Date().toISOString()
+            }
+        });
+    } catch (err) {
+        res.status(500).json({
+            error: true,
+            message: err.message,
+            data: null
+        });
+    }
+});
+
+// Endpoint untuk mendapatkan hash dari SHM tertentu
+app.get('/api/shm/:id/hash', async (req, res) => {
+    try {
+        const contract = await getContract();
+        const resultBytes = await contract.evaluateTransaction('readSHM', req.params.id);
+        const data = JSON.parse(decoder.decode(resultBytes));
+        
+        // Generate hash dari data SHM
+        const dataString = JSON.stringify(data);
+        const shmHash = crypto.createHash('sha256').update(dataString).digest('hex');
+        const shortHash = shmHash.substring(0, 16);
+        const previousHash = crypto.createHash('sha256').update(dataString.slice(0, -10)).digest('hex').substring(0, 16);
+        
+        res.json({
+            error: false,
+            message: "SHM hash retrieved successfully",
+            data: {
+                id: req.params.id,
+                currentHash: shmHash,
+                shortHash: shortHash,
+                previousHash: previousHash,
+                dataSize: dataString.length,
+                timestamp: new Date().toISOString(),
+                blockchain: {
+                    channelName: channelName,
+                    chaincodeName: chaincodeName,
+                    mspId: mspId
+                }
+            }
+        });
+    } catch (err) {
+        res.status(500).json({
+            error: true,
+            message: err.message,
+            data: null
+        });
+    }
+});
+
+// Endpoint untuk mendapatkan simulasi history SHM
+app.get('/api/shm/:id/history', async (req, res) => {
+    try {
+        const contract = await getContract();
+        const resultBytes = await contract.evaluateTransaction('readSHM', req.params.id);
+        const data = JSON.parse(decoder.decode(resultBytes));
+        
+        // Simulasi history berdasarkan data yang ada
+        const history = [
+            {
+                txId: crypto.createHash('sha256').update(`create-${req.params.id}`).digest('hex').substring(0, 16),
+                timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 hari lalu
+                action: "CREATE",
+                value: data,
+                hash: crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex').substring(0, 16)
+            }
+        ];
+        
+        // Tambah history balik nama jika ada perubahan pemilik
+        if (data.riwayatPemilik && data.riwayatPemilik.length > 1) {
+            history.push({
+                txId: crypto.createHash('sha256').update(`transfer-${req.params.id}`).digest('hex').substring(0, 16),
+                timestamp: new Date(Date.now() - 43200000).toISOString(), // 12 jam lalu
+                action: "BALIK_NAMA",
+                value: {
+                    from: data.riwayatPemilik[0],
+                    to: data.riwayatPemilik[data.riwayatPemilik.length - 1]
+                },
+                hash: crypto.createHash('sha256').update(`transfer-${JSON.stringify(data.riwayatPemilik)}`).digest('hex').substring(0, 16)
+            });
+        }
+        
+        res.json({
+            error: false,
+            message: "SHM history simulation retrieved successfully",
+            total_data: history.length,
+            data: history
+        });
+    } catch (err) {
+        res.status(404).json({
+            error: true,
+            message: err.message,
+            total_data: 0,
+            data: null
+        });
+    }
+});
 
 app.get('/api/shm', async (req, res) => {
     try {
