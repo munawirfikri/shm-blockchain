@@ -1,0 +1,135 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.shm-card {
+    transition: transform 0.2s;
+    cursor: pointer;
+}
+
+.shm-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.status-badge {
+    font-size: 0.75rem;
+}
+
+.blockchain-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.hash-display {
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    background-color: #f8f9fa;
+    padding: 8px;
+    border-radius: 4px;
+    word-break: break-all;
+}
+
+.chain-block {
+    border-left: 4px solid #007bff;
+    padding-left: 15px;
+    margin-bottom: 15px;
+}
+
+.chain-block.invalid {
+    border-left-color: #dc3545;
+}
+
+.chain-block.valid {
+    border-left-color: #28a745;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.alert-custom {
+    border-radius: 10px;
+    border: none;
+}
+
+.btn-custom {
+    border-radius: 20px;
+    padding: 8px 20px;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.tab-content {
+    min-height: 400px;
+}
+
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+.history-item {
+    border-left: 3px solid #007bff;
+    padding-left: 15px;
+    margin-bottom: 15px;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.history-item .timestamp {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.table-responsive {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}

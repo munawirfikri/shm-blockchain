@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHM Blockchain System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="fas fa-certificate"></i> SHM Blockchain</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text" id="blockchain-status">
+                    <i class="fas fa-circle text-success"></i> Connected
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Blockchain Info Card -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> Blockchain Information</h5>
+                    </div>
+                    <div class="card-body" id="blockchain-info">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status"></div>
+                            <p>Loading blockchain info...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="list-tab" data-bs-toggle="tab" data-bs-target="#list" type="button">
+                    <i class="fas fa-list"></i> Daftar SHM
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="create-tab" data-bs-toggle="tab" data-bs-target="#create" type="button">
+                    <i class="fas fa-plus"></i> Buat SHM
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="transfer-tab" data-bs-toggle="tab" data-bs-target="#transfer" type="button">
+                    <i class="fas fa-exchange-alt"></i> Balik Nama
+                </button>
+            </li>
+            <!-- <li class="nav-item" role="presentation">
+                <button class="nav-link" id="blockchain-tab" data-bs-toggle="tab" data-bs-target="#blockchain" type="button">
+                    <i class="fas fa-cubes"></i> Blockchain
+                </button>
+            </li> -->
+        </ul>
+
+        <div class="tab-content" id="mainTabsContent">
+            <!-- Daftar SHM Tab -->
+            <div class="tab-pane fade show active" id="list" role="tabpanel">
+                <div class="card mt-3">
+                    <div class="card-header d-flex justify-content-between">
+                        <h5>Daftar Sertifikat Hak Milik</h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadSHMList()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="shm-list">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status"></div>
+                                <p>Loading SHM data...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buat SHM Tab -->
+            <div class="tab-pane fade" id="create" role="tabpanel">
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Buat Sertifikat Hak Milik Baru</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="create-shm-form">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nomor Sertifikat</label>
+                                        <input type="text" class="form-control" name="nomorSertifikat" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Nama Pemilik</label>
+                                        <input type="text" class="form-control" name="namaPemilik" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">NIK Pemilik</label>
+                                        <input type="text" class="form-control" name="nikPemilik" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Luas Tanah (m²)</label>
+                                        <input type="number" class="form-control" name="luasTanah" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Penerbit</label>
+                                        <input type="text" class="form-control" name="penerbit" value="Kantor Pertanahan Jakarta">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Alamat Tanah</label>
+                                        <textarea class="form-control" name="alamatTanah" rows="2" required></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Kelurahan</label>
+                                        <input type="text" class="form-control" name="kelurahan">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Kecamatan</label>
+                                        <input type="text" class="form-control" name="kecamatan">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tanggal Penerbitan</label>
+                                        <input type="date" class="form-control" name="tanggal_penerbitan" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Status</label>
+                                        <select class="form-control" name="status">
+                                            <option value="aktif">Aktif</option>
+                                            <option value="tidak_aktif">Tidak Aktif</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Buat SHM
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Balik Nama Tab -->
+            <div class="tab-pane fade" id="transfer" role="tabpanel">
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Balik Nama Sertifikat</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="transfer-shm-form">
+                            <div class="mb-3">
+                                <label class="form-label">Nomor Sertifikat</label>
+                                <input type="text" class="form-control" name="nomorSertifikat" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nama Pemilik Baru</label>
+                                <input type="text" class="form-control" name="namaPemilikBaru" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">NIK Pemilik Baru</label>
+                                <input type="text" class="form-control" name="nikPemilikBaru" required>
+                            </div>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-exchange-alt"></i> Balik Nama
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Blockchain Tab -->
+            <div class="tab-pane fade" id="blockchain" role="tabpanel">
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Blockchain Verification</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-info mb-3" onclick="verifyChain()">
+                            <i class="fas fa-shield-alt"></i> Verify Hash Chain
+                        </button>
+                        <div id="chain-verification"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for SHM Details -->
+    <div class="modal fade" id="shmModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detail SHM</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="shm-modal-body">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
