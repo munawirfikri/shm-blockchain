@@ -40,14 +40,19 @@ class SHMContract extends Contract {
       },
     ];
 
+    // Get timestamp from transaction context for deterministic behavior
+    const txTimestamp = ctx.stub.getTxTimestamp();
+    const txTime = new Date(txTimestamp.seconds.low * 1000);
+    const isoTimestamp = txTime.toISOString();
+
     for (const data of shmData) {
         const shm = {
             ...data,
             status_sertifikat: 'AKTIF',
-            tanggal_penerbitan: new Date().toISOString(),
+            tanggal_penerbitan: isoTimestamp,
             riwayat_transaksi: [{
                 id_transaksi: ctx.stub.getTxID(),
-                tanggal: new Date().toISOString(),
+                tanggal: isoTimestamp,
                 jenis: 'Penerbitan Awal',
                 keterangan: `Diterbitkan oleh ${data.penerbit} untuk ${data.pemilik.nama}`,
             }],
@@ -75,16 +80,21 @@ class SHMContract extends Contract {
         throw new Error(`Sertifikat dengan nomor ${nomor_sertifikat} sudah ada`);
     }
     
+    // Get timestamp from transaction context for deterministic behavior
+    const txTimestamp = ctx.stub.getTxTimestamp();
+    const txTime = new Date(txTimestamp.seconds.low * 1000);
+    const isoTimestamp = txTime.toISOString();
+    
     const shm = {
       nomor_sertifikat,
       status_sertifikat: 'AKTIF',
       penerbit,
-      tanggal_penerbitan: new Date().toISOString(),
+      tanggal_penerbitan: isoTimestamp,
       pemilik,
       properti,
       riwayat_transaksi: [{
         id_transaksi: ctx.stub.getTxID(),
-        tanggal: new Date().toISOString(),
+        tanggal: isoTimestamp,
         jenis: 'Penerbitan Awal',
         keterangan: `Diterbitkan oleh ${penerbit} untuk ${pemilik.nama}`,
       }],
@@ -116,12 +126,17 @@ class SHMContract extends Contract {
         throw new Error(`Tidak dapat melakukan balik nama. Status sertifikat saat ini: ${shm.status_sertifikat}`);
     }
 
+    // Get timestamp from transaction context for deterministic behavior
+    const txTimestamp = ctx.stub.getTxTimestamp();
+    const txTime = new Date(txTimestamp.seconds.low * 1000);
+    const isoTimestamp = txTime.toISOString();
+    
     const pemilikLama = shm.pemilik.nama;
     shm.pemilik = { nama: namaPemilikBaru, nik: nikPemilikBaru };
     
     shm.riwayat_transaksi.push({
         id_transaksi: ctx.stub.getTxID(),
-        tanggal: new Date().toISOString(),
+        tanggal: isoTimestamp,
         jenis: 'Balik Nama',
         keterangan: `Kepemilikan beralih dari ${pemilikLama} ke ${namaPemilikBaru}`,
     });
@@ -137,10 +152,15 @@ class SHMContract extends Contract {
       const shm = await this.readSHM(ctx, nomorSertifikat);
       const statusLama = shm.status_sertifikat;
       shm.status_sertifikat = 'TIDAK_BERLAKU';
+      
+      // Get timestamp from transaction context for deterministic behavior
+      const txTimestamp = ctx.stub.getTxTimestamp();
+      const txTime = new Date(txTimestamp.seconds.low * 1000);
+      const isoTimestamp = txTime.toISOString();
 
       shm.riwayat_transaksi.push({
           id_transaksi: ctx.stub.getTxID(),
-          tanggal: new Date().toISOString(),
+          tanggal: isoTimestamp,
           jenis: 'Pembatalan Sertifikat',
           keterangan: `Sertifikat dibatalkan dari status ${statusLama}. Alasan: ${alasan}`,
       });

@@ -6,6 +6,7 @@ import grpc from '@grpc/grpc-js';
 import path from 'path';
 import { TextDecoder } from 'util';
 import { fileURLToPath } from 'url';
+import { checkNetworkHealth } from './network-check.js';
 
 // ✅ Konversi __dirname untuk ES module
 const __filename = fileURLToPath(import.meta.url);
@@ -83,7 +84,12 @@ async function getContract() {
         hash: hash.sha256,
         evaluateOptions: () => ({ deadline: Date.now() + 5000 }),
         endorseOptions: () => ({ deadline: Date.now() + 15000 }),
-        submitOptions: () => ({ deadline: Date.now() + 30000 })
+        submitOptions: () => ({ deadline: Date.now() + 30000 }),
+        // Add consistency strategy to handle non-deterministic chaincode
+        endorseOptions: () => ({
+            deadline: Date.now() + 15000,
+            endorsementStrategy: 'MAJORITY'
+        })
     });
 
     const network = gateway.getNetwork(channelName);
@@ -94,20 +100,59 @@ async function getContract() {
 
 async function submitWithRetry(contract, functionName, ...args) {
     const maxRetries = 3;
+    let lastError;
+    
     for (let i = 0; i < maxRetries; i++) {
         try {
-            return await contract.submitTransaction(functionName, ...args);
+            const result = await contract.submitTransaction(functionName, ...args);
+            return result;
         } catch (err) {
-            if (err.message.includes('failed to collect enough transaction endorsements') && i < maxRetries - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+            lastError = err;
+            console.error(`Attempt ${i+1} failed:`, err.message);
+            
+            // Handle specific endorsement errors
+            if ((err.message.includes('failed to collect enough transaction endorsements') || 
+                 err.message.includes('ProposalResponsePayloads do not match')) && 
+                 i < maxRetries - 1) {
+                const backoffTime = 1000 * Math.pow(2, i); // Exponential backoff
+                console.log(`Retrying in ${backoffTime}ms...`);
+                await new Promise(resolve => setTimeout(resolve, backoffTime));
                 continue;
             }
             throw err;
         }
     }
+    
+    throw lastError;
 }
 
 // 🔄 API Endpoints
+
+// Health check endpoint
+app.get('/api/health', async (req, res) => {
+    try {
+        const health = await checkNetworkHealth();
+        if (health.status === 'healthy') {
+            res.json({
+                error: false,
+                message: 'System is healthy',
+                data: health
+            });
+        } else {
+            res.status(503).json({
+                error: true,
+                message: 'System is unhealthy',
+                data: health
+            });
+        }
+    } catch (err) {
+        res.status(500).json({
+            error: true,
+            message: err.message,
+            data: null
+        });
+    }
+});
 
 // Endpoint untuk mendapatkan informasi blockchain
 app.get('/api/blockchain/info', async (req, res) => {
@@ -301,7 +346,7 @@ app.post('/api/shm', async (req, res) => {
     } catch (err) {
         res.status(500).json({
             error: true,
-            message: err.details[0].message|| err.message,
+            message: err.message,
             total_data: 0,
             data: null
         });
@@ -503,6 +548,31 @@ app.post('/api/blockchain/fix-chain', async (req, res) => {
             data: null
         });
     }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Error occurred:', err);
+    
+    // Check for specific Fabric errors
+    if (err.message && err.message.includes('ProposalResponsePayloads do not match')) {
+        console.error('Endorsement policy failure - Peers returned different results');
+        return res.status(500).json({
+            error: true,
+            message: 'Transaction could not be processed due to endorsement policy failure. Please try again.',
+            details: err.message,
+            total_data: 0,
+            data: null
+        });
+    }
+    
+    // General error handler
+    res.status(500).json({
+        error: true,
+        message: err.message || 'An unexpected error occurred',
+        total_data: 0,
+        data: null
+    });
 });
 
 // ▶️ Jalankan server

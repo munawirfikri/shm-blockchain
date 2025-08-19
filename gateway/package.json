@@ -9,7 +9,10 @@
     "scripts": {
         "lint": "eslint src",
         "pretest": "npm run lint",
-        "start": "node src/app.js"
+        "check-files": "node check-files.js",
+        "check-network": "node check-network.js",
+        "start": "npm run check-files && node src/app.js",
+        "start:skip-check": "node src/app.js"
     },
     "engineStrict": true,
     "author": "Hyperledger",
